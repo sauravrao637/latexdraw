@@ -123,3 +123,7 @@ We do not maintain the 3.x serie anymore.
 You can find the 3.x help page here:
 https://github.com/latexdraw/latexdraw/wiki/Manual-for-Versions-3.x
 
+
+The documentation for changes in this fork is [here](https://docs.google.com/document/d/1w6CakYszRUDbdC7yasnXJcTQ8PEN4mOCVuxzN45oQBs/edit?usp=sharing)
+
+

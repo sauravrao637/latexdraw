@@ -26,15 +26,23 @@ import net.sf.latexdraw.command.shape.InitTextSetter;
 import net.sf.latexdraw.command.shape.InsertPicture;
 import net.sf.latexdraw.model.MathUtils;
 import net.sf.latexdraw.model.ShapeFactory;
+import net.sf.latexdraw.model.api.shape.Axes;
 import net.sf.latexdraw.model.api.shape.BezierCurve;
 import net.sf.latexdraw.model.api.shape.BorderPos;
 import net.sf.latexdraw.model.api.shape.ControlPointShape;
 import net.sf.latexdraw.model.api.shape.Freehand;
 import net.sf.latexdraw.model.api.shape.ModifiablePointsShape;
 import net.sf.latexdraw.model.api.shape.Point;
+import net.sf.latexdraw.model.api.shape.Shape;
+import net.sf.latexdraw.model.api.shape.Freehand;
+import net.sf.latexdraw.model.api.shape.SquaredShape;
 import net.sf.latexdraw.model.api.shape.Polygon;
+import net.sf.latexdraw.model.api.shape.ModifiablePointsShape;
 import net.sf.latexdraw.model.api.shape.Polyline;
+import net.sf.latexdraw.model.api.shape.BezierCurve;
+import net.sf.latexdraw.model.api.shape.ControlPointShape;
 import net.sf.latexdraw.model.api.shape.PositionShape;
+import net.sf.latexdraw.model.api.shape.BorderPos;
 import net.sf.latexdraw.model.api.shape.RectangularShape;
 import net.sf.latexdraw.model.api.shape.Shape;
 import net.sf.latexdraw.model.api.shape.SquaredShape;
@@ -44,6 +52,8 @@ import net.sf.latexdraw.view.jfx.Canvas;
 import net.sf.latexdraw.view.jfx.MagneticGrid;
 import net.sf.latexdraw.view.jfx.ViewFactory;
 import org.jetbrains.annotations.NotNull;
+
+import static net.sf.latexdraw.model.api.shape.Shape.PPC;
 
 /**
  * This instrument allows to draw shapes.
@@ -115,7 +125,7 @@ public class Pencil extends CanvasInstrument {
 		bindDnDToDrawSquaredShape();
 		bindDnDToDrawFreeHandShape();
 		bindMultiClic2AddShape();
-
+		bindDbDToDrawGridBase();
 		// Binds a pressure to show the text setter
 		nodeBinder()
 				.usingInteraction(Click::new)
@@ -123,6 +133,33 @@ public class Pencil extends CanvasInstrument {
 				.on(canvas)
 				.when(i -> (editing.getCurrentChoice() == EditionChoice.TEXT || editing.getCurrentChoice() == EditionChoice.PLOT) && i.getButton() == MouseButton.PRIMARY)
 				.bind();
+	}
+
+	private void bindDbDToDrawGridBase() {
+		nodeBinder()
+				.usingInteraction(() -> new DnD(false, true))
+				.toProduce(i -> {
+					final PositionShape sh = (PositionShape) editing.createShapeInstance();
+					sh.setPosition(getAdaptedPoint(i.getSrcLocalPoint()));
+					return new AddShape(sh, canvas.getDrawing());})
+				.on(canvas)
+				.first((i, c) -> {
+					canvas.requestFocus();
+					canvas.setTempView(viewFactory.createView(c.getShape()).orElse(null));
+				})
+				.then((i, c) -> {
+					updateGridFromDiag((Axes) c.getShape(), getAdaptedPoint(i.getSrcLocalPoint()), getAdaptedPoint(i.getTgtLocalPoint()));
+				})
+				.endOrCancel(i -> canvas.setTempView(null))
+				.strictStart()
+				.when(i -> i.getButton() == MouseButton.PRIMARY &&
+						( editing.getCurrentChoice() == EditionChoice.AXES))
+				.bind();
+	}
+
+	private void updateGridFromDiag(final Axes shape, final Point adaptedPoint, final Point adaptedPoint1) {
+		shape.gridEndXProperty().setValue((adaptedPoint1.getX()-adaptedPoint.getX())/PPC);
+		shape.gridEndYProperty().setValue((adaptedPoint.getY()-adaptedPoint1.getY())/PPC);
 	}
 
 	/**
@@ -294,7 +331,7 @@ public class Pencil extends CanvasInstrument {
 				})
 				.on(canvas)
 				.when(i -> i.getButton() == MouseButton.PRIMARY && (editing.getCurrentChoice() == EditionChoice.GRID ||
-						editing.getCurrentChoice() == EditionChoice.DOT || editing.getCurrentChoice() == EditionChoice.AXES))
+						editing.getCurrentChoice() == EditionChoice.DOT ))
 				.bind();
 
 		// When a user starts to type a text using the text setter and then he clicks somewhere else in the canvas,
